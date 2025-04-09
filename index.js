@@ -14,7 +14,6 @@ dotenv.config();
 
 const port = process.env.PORT || 3001;
 
-
 const app = express();
 const prisma = new PrismaClient();
 
@@ -77,7 +76,7 @@ app.post("/register", async (req, res) => {
 app.get("/users", isUserLoggedIn, async (req, res) => {
   try {
     // console.log(req.user);
-    
+
     const users = await prisma.user.findMany();
     return res.status(200).json(users);
   } catch (error) {
@@ -117,7 +116,7 @@ app.patch("/users/:userId", async (request, response) => {
       return response.status(409).json({ message: "username already exist" });
     }
 
-      const checkUserWithUserId = await prisma.user.findUnique({
+    const checkUserWithUserId = await prisma.user.findUnique({
       where: {
         id: parseInt(user_id),
       },
@@ -128,11 +127,11 @@ app.patch("/users/:userId", async (request, response) => {
     }
 
     const updatedUser = await prisma.user.update({
-        where: { id: parseInt(user_id) },
-        data: {
-          username: username.toLowerCase(),
-        },
-      });
+      where: { id: parseInt(user_id) },
+      data: {
+        username: username.toLowerCase(),
+      },
+    });
 
     return response.status(200).json(updatedUser);
   } catch (error) {
@@ -143,64 +142,63 @@ app.patch("/users/:userId", async (request, response) => {
   }
 });
 
-app.delete("/users/:userId", async (req, res)=>{
-    try {
-        const user_id = req.params.userId;
-        const checkRecordExist = await prisma.user.findUnique({
-            where: {id: parseInt(user_id)}
-        });
-
-        if(!checkRecordExist){
-            return res.status(404).json({message: "Record not found"})
-        };
-        await prisma.user.delete({
-            where: { id: checkRecordExist.id }
-        })
-    } catch (error) {
-        console.log(error);
-        return res.status(500)
-        .json({message: "Server failure. Please try again after some time"})
-    }
-})
-
-app.post("/login", async (req, res)=>{
+app.delete("/users/:userId", async (req, res) => {
   try {
-    const {email, password } = req.body;
+    const user_id = req.params.userId;
+    const checkRecordExist = await prisma.user.findUnique({
+      where: { id: parseInt(user_id) },
+    });
+
+    if (!checkRecordExist) {
+      return res.status(404).json({ message: "Record not found" });
+    }
+    await prisma.user.delete({
+      where: { id: checkRecordExist.id },
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Server failure. Please try again after some time" });
+  }
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
     // find the user in database with the provided email
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
     // if not foud
-    if(!user){
-      return res.status(401).json({message: "Invalid crentials"});
-    };
+    if (!user) {
+      return res.status(401).json({ message: "Invalid crentials" });
+    }
 
     // compare password
     const isPwdCorrect = await bcrypt.compare(password, user.password);
 
     // if password is incorrect, return unauthorized res
-    if(!isPwdCorrect){
-      return res.status(401).json({message: "Invalid credentials"})
-    };
+    if (!isPwdCorrect) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    const token = jwt.sign(
-      {id: user.id},
-      process.env.JWT_SECRET,
-      {expiresIn: "1h"}
-    );
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-    return res.status(200)
-    .json({
+    return res.status(200).json({
       message: "Login is successful",
-       userData: user,
-       token
-      })
+      userData: user,
+      token,
+    });
   } catch (error) {
     console.log(error);
-        return res.status(500)
-        .json({message: "Server failure. Please try again after some time"})
+    return res
+      .status(500)
+      .json({ message: "Server failure. Please try again after some time" });
   }
-})
+});
 
 app.listen(port, () => console.log(`Server is running on port ${port}`));
